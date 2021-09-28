@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="nevaland.notification_app">
+
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -19,10 +26,19 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ResultActivity"
-            android:parentActivityName=".MainActivity" >
-        </activity>
+<!--        <activity-->
+<!--            android:name=".ResultActivity"-->
+<!--            android:parentActivityName=".MainActivity" >-->
+<!--        </activity>-->
+        <receiver android:name=".DeviceBootReceiver"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".AlarmReceiver" />
     </application>
 
 </manifest>
