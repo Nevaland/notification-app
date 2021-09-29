@@ -75,7 +75,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             nextNotifyTime.add(Calendar.DATE, 1);
 
             //  Preference에 설정한 값 저장
-            SharedPreferences.Editor editor = context.getSharedPreferences("daily alarm", MODE_PRIVATE).edit();
+            SharedPreferences.Editor editor = context.getSharedPreferences("notification_settings", MODE_PRIVATE).edit();
             editor.putLong("nextNotifyTime", nextNotifyTime.getTimeInMillis());
             editor.apply();
 

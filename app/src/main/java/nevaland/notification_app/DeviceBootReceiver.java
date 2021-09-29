@@ -29,7 +29,7 @@ public class DeviceBootReceiver extends BroadcastReceiver {
 
             AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-            SharedPreferences sharedPreferences = context.getSharedPreferences("daily alarm", MODE_PRIVATE);
+            SharedPreferences sharedPreferences = context.getSharedPreferences("notification_settings", MODE_PRIVATE);
             long millis = sharedPreferences.getLong("nextNotifyTime", Calendar.getInstance().getTimeInMillis());
 
 
