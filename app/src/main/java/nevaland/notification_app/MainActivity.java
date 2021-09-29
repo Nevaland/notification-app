@@ -17,7 +17,6 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TimePicker;
-import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -63,41 +62,37 @@ public class MainActivity extends AppCompatActivity {
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                // TODO: Check OnOff
-
-                int hour_24, minute;
-                if (Build.VERSION.SDK_INT >= 23 ){
-                    hour_24 = startTimePicker.getHour();
-                    minute = startTimePicker.getMinute();
-                }
-                else{
-                    hour_24 = startTimePicker.getCurrentHour();
-                    minute = startTimePicker.getCurrentMinute();
-                }
-
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTimeInMillis(System.currentTimeMillis());
-                calendar.set(Calendar.HOUR_OF_DAY, hour_24);
-                calendar.set(Calendar.MINUTE, minute);
-                calendar.set(Calendar.SECOND, 0);
-
-                if (calendar.before(Calendar.getInstance())) {
-                    calendar.add(Calendar.DATE, 1);
-                }
-
-                Date currentDateTime = calendar.getTime();
-                String date_text = new SimpleDateFormat("yyyy년 MM월 dd일 EE요일 a hh시 mm분 ", Locale.getDefault()).format(currentDateTime);
-                Toast.makeText(getApplicationContext(),date_text + "으로 알람이 설정되었습니다!", Toast.LENGTH_SHORT).show();
-
-                //  Preference에 설정한 값 저장
-                SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
-                editor.putLong(NEXT_NOTIFY_TIME_KN, (long) calendar.getTimeInMillis());
-                editor.apply();
-
-                diaryNotification(calendar);
+                Calendar startCalendar = getCalendarFromTimePicker(startTimePicker);
+                Calendar endCalendar = getCalendarFromTimePicker(endTimePicker);
+                saveTimes(startCalendar, endCalendar);
             }
         });
+    }
 
+    private Calendar getCalendarFromTimePicker(TimePicker timePicker) {
+        int hour_24, minute;
+        if (Build.VERSION.SDK_INT >= 23 ) {
+            hour_24 = timePicker.getHour();
+            minute = timePicker.getMinute();
+        } else {
+            hour_24 = timePicker.getCurrentHour();
+            minute = timePicker.getCurrentMinute();
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, hour_24);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+
+        return calendar;
+    }
+
+    private void saveTimes(Calendar startCalendar, Calendar endCalendar) {
+        SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
+        editor.putLong(START_STARE_TIME_KN, (long) startCalendar.getTimeInMillis());
+        editor.putLong(END_STARE_TIME_KN, (long) endCalendar.getTimeInMillis());
+        editor.apply();
     }
 
     private void setTimePickers(TimePicker startTimePicker, TimePicker endTimePicker, long startStareTimeMillis, long endStareTimeMillis) {
@@ -112,13 +107,12 @@ public class MainActivity extends AppCompatActivity {
         int end_hour = getHour(endStareDate);
         int end_minute = getMinute(endStareDate);
 
-        if (Build.VERSION.SDK_INT >= 23){
+        if (Build.VERSION.SDK_INT >= 23) {
             startTimePicker.setHour(start_hour);
             startTimePicker.setMinute(start_minute);
             endTimePicker.setHour(end_hour);
             endTimePicker.setMinute(end_minute);
-        }
-        else{
+        } else {
             startTimePicker.setCurrentHour(start_hour);
             startTimePicker.setCurrentMinute(start_minute);
             endTimePicker.setCurrentHour(end_hour);
@@ -143,8 +137,7 @@ public class MainActivity extends AppCompatActivity {
         return calendar.getTime();
     }
 
-    void diaryNotification(Calendar calendar)
-    {
+    void diaryNotification(Calendar calendar) {
 //        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 //        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 //        Boolean dailyNotify = sharedPref.getBoolean(SettingsActivity.KEY_PREF_DAILY_NOTIFICATION, true);
@@ -159,13 +152,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 사용자가 매일 알람을 허용했다면
         if (dailyNotify) {
-
-
             if (alarmManager != null) {
-
                 alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                         AlarmManager.INTERVAL_DAY, pendingIntent);
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
                 }
@@ -187,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
 //                    PackageManager.DONT_KILL_APP);
 //        }
     }
-
 
 //    public void NotificationSomethings() {
 //        NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
