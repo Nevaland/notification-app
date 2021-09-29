@@ -12,11 +12,13 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -31,18 +33,26 @@ public class MainActivity extends AppCompatActivity {
     final private String END_STARE_TIME_KN = "endStareTime";
     final private String IS_ENABLE_KN = "isEnable";
 
+    private SharedPreferences sharedPreferences;
+    private long nextNotifyTimeMillis;
+    private long startStareTimeMillis;
+    private long endStareTimeMillis;
+    private Boolean isEnable;
+
+    private TimePicker startTimePicker;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        SharedPreferences sharedPreferences = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE);
-        long nextNotifyTimeMillis = sharedPreferences.getLong(NEXT_NOTIFY_TIME_KN, Calendar.getInstance().getTimeInMillis());
-        long startStareTimeMillis = sharedPreferences.getLong(START_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis());
-        long endStareTimeMillis = sharedPreferences.getLong(END_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis() + 600000);
-        Boolean isEnable = sharedPreferences.getBoolean(IS_ENABLE_KN, false);
+        sharedPreferences = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE);
+        nextNotifyTimeMillis = sharedPreferences.getLong(NEXT_NOTIFY_TIME_KN, Calendar.getInstance().getTimeInMillis());
+        startStareTimeMillis = sharedPreferences.getLong(START_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis());
+        endStareTimeMillis = sharedPreferences.getLong(END_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis() + 600000);
+        isEnable = sharedPreferences.getBoolean(IS_ENABLE_KN, false);
 
-        final TimePicker startTimePicker = (TimePicker) findViewById(R.id.timePicker_start);
+        startTimePicker = (TimePicker) findViewById(R.id.timePicker_start);
         final TimePicker endTimePicker = (TimePicker) findViewById(R.id.timePicker_end);
         final Switch onOffSwitch = (Switch) findViewById(R.id.switch_onOff);
         Button saveButton = (Button) findViewById(R.id.btn_save);
@@ -56,6 +66,12 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
                 editor.putBoolean(IS_ENABLE_KN, (Boolean) isChecked);
                 editor.apply();
+                setTimePickers(startTimePicker, endTimePicker, startStareTimeMillis, endStareTimeMillis);
+
+                isEnable = isChecked;
+                if (isEnable) {
+                    setNotification();
+                }
             }
         });
 
@@ -65,8 +81,55 @@ public class MainActivity extends AppCompatActivity {
                 Calendar startCalendar = getCalendarFromTimePicker(startTimePicker);
                 Calendar endCalendar = getCalendarFromTimePicker(endTimePicker);
                 saveTimes(startCalendar, endCalendar);
+
+                if (isEnable) {
+                    setNotification();
+                }
             }
         });
+    }
+
+    private void setNotification() {
+        saveNotifyTime();
+
+        Calendar startCalendar = getCalendarFromTimePicker(startTimePicker);
+        if (startCalendar.before(Calendar.getInstance())) {
+            startCalendar.add(Calendar.DATE, 1);    // TODO: Fix Save Type for Not 1Day Case Bug
+        }
+        setToastByCalendar(startCalendar);
+
+        PackageManager pm = this.getPackageManager();
+        ComponentName receiver = new ComponentName(this, DeviceBootReceiver.class);
+        Intent alarmIntent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        // 사용자가 매일 알람을 허용했다면
+        if (alarmManager != null) {
+            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, startCalendar.getTimeInMillis(),
+                    AlarmManager.INTERVAL_DAY, pendingIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startCalendar.getTimeInMillis(), pendingIntent);
+            }
+        }
+
+        // 부팅 후 실행되는 리시버 사용가능하게 설정
+        pm.setComponentEnabledSetting(receiver,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP);
+    }
+
+    private void saveNotifyTime() {
+        nextNotifyTimeMillis = startStareTimeMillis;
+        SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
+        editor.putLong(NEXT_NOTIFY_TIME_KN, (long) nextNotifyTimeMillis);
+        editor.apply();
+    }
+
+    private void setToastByCalendar(Calendar startCalendar) {
+        Date currentDateTime = startCalendar.getTime();
+        String date_text = new SimpleDateFormat("yyyy년 MM월 dd일 EE요일 a hh시 mm분 ", Locale.getDefault()).format(currentDateTime);
+        Toast.makeText(getApplicationContext(),date_text + "으로 알람이 설정되었습니다!", Toast.LENGTH_SHORT).show();
     }
 
     private Calendar getCalendarFromTimePicker(TimePicker timePicker) {
@@ -89,13 +152,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveTimes(Calendar startCalendar, Calendar endCalendar) {
+        Log.d("NEVA", "[*] saveTimes()");
+        startStareTimeMillis = startCalendar.getTimeInMillis();
+        endStareTimeMillis = endCalendar.getTimeInMillis();
+
         SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
-        editor.putLong(START_STARE_TIME_KN, (long) startCalendar.getTimeInMillis());
-        editor.putLong(END_STARE_TIME_KN, (long) endCalendar.getTimeInMillis());
+        editor.putLong(START_STARE_TIME_KN, (long) startStareTimeMillis);
+        editor.putLong(END_STARE_TIME_KN, (long) endStareTimeMillis);
         editor.apply();
+
     }
 
     private void setTimePickers(TimePicker startTimePicker, TimePicker endTimePicker, long startStareTimeMillis, long endStareTimeMillis) {
+        Log.d("NEVA", "[*] setTimesPickers()");
         startTimePicker.setIs24HourView(true);
         endTimePicker.setIs24HourView(true);
 

@@ -29,11 +29,9 @@ public class AlarmReceiver extends BroadcastReceiver {
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingI = PendingIntent.getActivity(context, 0,
-                notificationIntent, 0);
-
+                notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "default");
-
 
         //OREO API 26 이상에서는 채널 필요
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
