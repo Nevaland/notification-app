@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -25,17 +26,22 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    final private String NOTIFICATION_SETTINGS_FN = "notification_settings";
+    final private String NEXT_NOTIFY_TIME_KN = "nextNotifyTime";
+    final private String START_STARE_TIME_KN = "startStareTime";
+    final private String END_STARE_TIME_KN = "endStareTime";
+    final private String IS_ENABLE_KN = "isEnable";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        SharedPreferences sharedPreferences = getSharedPreferences("notification_settings", MODE_PRIVATE);
-        long nextNotifyTimeMillis = sharedPreferences.getLong("nextNotifyTime", Calendar.getInstance().getTimeInMillis());
-        long startStareTimeMillis = sharedPreferences.getLong("startStareTime", Calendar.getInstance().getTimeInMillis());
-        long endStareTimeMillis = sharedPreferences.getLong("endStareTime", Calendar.getInstance().getTimeInMillis() + 600000);
-        Boolean isEnable = sharedPreferences.getBoolean("isEnable", false);
+        SharedPreferences sharedPreferences = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE);
+        long nextNotifyTimeMillis = sharedPreferences.getLong(NEXT_NOTIFY_TIME_KN, Calendar.getInstance().getTimeInMillis());
+        long startStareTimeMillis = sharedPreferences.getLong(START_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis());
+        long endStareTimeMillis = sharedPreferences.getLong(END_STARE_TIME_KN, Calendar.getInstance().getTimeInMillis() + 600000);
+        Boolean isEnable = sharedPreferences.getBoolean(IS_ENABLE_KN, false);
 
         final TimePicker startTimePicker = (TimePicker) findViewById(R.id.timePicker_start);
         final TimePicker endTimePicker = (TimePicker) findViewById(R.id.timePicker_end);
@@ -45,10 +51,12 @@ public class MainActivity extends AppCompatActivity {
         setTimePickers(startTimePicker, endTimePicker, startStareTimeMillis, endStareTimeMillis);
 
         onOffSwitch.setChecked(isEnable);
-        onOffSwitch.setOnClickListener(new View.OnClickListener() {
+        onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View view) {
-                // TODO: Getting onOff Switch value, Saving value.
+            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
+                editor.putBoolean(IS_ENABLE_KN, (Boolean) isChecked);
+                editor.apply();
             }
         });
 
@@ -82,8 +90,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),date_text + "으로 알람이 설정되었습니다!", Toast.LENGTH_SHORT).show();
 
                 //  Preference에 설정한 값 저장
-                SharedPreferences.Editor editor = getSharedPreferences("notification_settings", MODE_PRIVATE).edit();
-                editor.putLong("nextNotifyTime", (long) calendar.getTimeInMillis());
+                SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
+                editor.putLong(NEXT_NOTIFY_TIME_KN, (long) calendar.getTimeInMillis());
                 editor.apply();
 
                 diaryNotification(calendar);
