@@ -27,6 +27,7 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    final private int ALARM_REQUEST_CODE = 0;
     final private String NOTIFICATION_SETTINGS_FN = "notification_settings";
     final private String NEXT_NOTIFY_TIME_KN = "nextNotifyTime";
     final private String START_STARE_TIME_KN = "startStareTime";
@@ -63,14 +64,15 @@ public class MainActivity extends AppCompatActivity {
         onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
-                editor.putBoolean(IS_ENABLE_KN, (Boolean) isChecked);
-                editor.apply();
+                saveIsEnable((Boolean) isChecked);
+
                 setTimePickers(startTimePicker, endTimePicker, startStareTimeMillis, endStareTimeMillis);
 
-                isEnable = isChecked;
-                if (isEnable) {
+                if (isChecked) {
                     setNotification();
+                }
+                else {
+                    unsetNotification();
                 }
             }
         });
@@ -82,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
                 Calendar endCalendar = getCalendarFromTimePicker(endTimePicker);
                 saveTimes(startCalendar, endCalendar);
 
+                isEnable = sharedPreferences.getBoolean(IS_ENABLE_KN, false);
                 if (isEnable) {
                     setNotification();
                 }
@@ -89,19 +92,34 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void saveIsEnable(Boolean isChecked) {
+        SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
+        editor.putBoolean(IS_ENABLE_KN, isChecked);
+        editor.apply();
+    }
+
+    private void unsetNotification() {
+        Intent alarmIntent = new Intent(MainActivity.this, AlarmReceiver.class);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        PendingIntent cancelIntent = PendingIntent.getBroadcast(MainActivity.this, ALARM_REQUEST_CODE, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        alarmManager.cancel(cancelIntent);
+    }
+
     private void setNotification() {
         saveNotifyTime();
 
         Calendar startCalendar = getCalendarFromTimePicker(startTimePicker);
         if (startCalendar.before(Calendar.getInstance())) {
-            startCalendar.add(Calendar.DATE, 1);    // TODO: Fix Save Type for Not 1Day Case Bug
+            long startCalendarMills = startCalendar.getTimeInMillis();
+            startCalendar = Calendar.getInstance();
+            startCalendar.setTimeInMillis(startCalendarMills);
         }
         setToastByCalendar(startCalendar);
 
         PackageManager pm = this.getPackageManager();
         ComponentName receiver = new ComponentName(this, DeviceBootReceiver.class);
         Intent alarmIntent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         // 사용자가 매일 알람을 허용했다면
@@ -215,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         PackageManager pm = this.getPackageManager();
         ComponentName receiver = new ComponentName(this, DeviceBootReceiver.class);
         Intent alarmIntent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, alarmIntent, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
 
