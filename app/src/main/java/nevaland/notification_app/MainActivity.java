@@ -27,7 +27,7 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
-    final private int ALARM_REQUEST_CODE = 0;
+    final static private int ALARM_REQUEST_CODE = 0;
     final private String NOTIFICATION_SETTINGS_FN = "notification_settings";
     final private String NEXT_NOTIFY_TIME_KN = "nextNotifyTime";
     final private String START_STARE_TIME_KN = "startStareTime";
@@ -64,10 +64,8 @@ public class MainActivity extends AppCompatActivity {
         onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                saveIsEnable((Boolean) isChecked);
-
+                saveData(isChecked);
                 setTimePickers(startTimePicker, endTimePicker, startStareTimeMillis, endStareTimeMillis);
-
                 if (isChecked) {
                     setNotification();
                 }
@@ -92,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void saveIsEnable(Boolean isChecked) {
+    private void saveData(Boolean isChecked) {
         SharedPreferences.Editor editor = getSharedPreferences(NOTIFICATION_SETTINGS_FN, MODE_PRIVATE).edit();
         editor.putBoolean(IS_ENABLE_KN, isChecked);
         editor.apply();
